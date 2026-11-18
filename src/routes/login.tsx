@@ -23,6 +23,32 @@ function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showResendConfirmation, setShowResendConfirmation] = useState(false);
+  const [resending, setResending] = useState(false);
+
+  const handleResendConfirmation = async () => {
+    if (!email.trim()) return;
+    try {
+      setResending(true);
+      const { error } = await supabase.auth.resend({
+        type: "signup",
+        email: email.trim(),
+      });
+      if (error) {
+        toast.error(error.message);
+      } else {
+        toast.success(
+          isRTL
+            ? "تمت إعادة إرسال رابط التفعيل بنجاح! راجع بريدك الآن (وافحص مجلد Spam)."
+            : "Confirmation link sent! Check your email inbox and spam folder."
+        );
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Failed to resend confirmation");
+    } finally {
+      setResending(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -36,6 +62,7 @@ function LoginPage() {
       const { error } = await signIn(email.trim(), password);
       if (error) {
         if (error.message.includes("Email not confirmed")) {
+          setShowResendConfirmation(true);
           toast.error(
             isRTL
               ? "يرجى تأكيد بريدك الإلكتروني عبر الرابط المرسل إلى بريدك أولاً."
@@ -158,6 +185,31 @@ function LoginPage() {
                 />
               </div>
             </div>
+
+            {showResendConfirmation && (
+              <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/30 text-xs space-y-2">
+                <p className="text-amber-800 dark:text-amber-300 font-medium">
+                  {isRTL
+                    ? "حسابك بانتظار تفعيل البريد. يرجى فحص صندوق الوارد ومجلد الرسائل غير المرغوب فيها (Spam)."
+                    : "Your account requires email confirmation. Please check your inbox and spam folder."}
+                </p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleResendConfirmation}
+                  disabled={resending}
+                  className="w-full h-8 text-xs font-semibold border-amber-500/40 hover:bg-amber-500/20"
+                >
+                  {resending ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin mr-1" />
+                  ) : (
+                    <Mail className="w-3.5 h-3.5 mr-1" />
+                  )}
+                  {isRTL ? "إعادة إرسال رابط التفعيل إلى بريدي" : "Resend Confirmation Email"}
+                </Button>
+              </div>
+            )}
           </CardContent>
 
           <CardFooter className="flex flex-col space-y-4 pt-2">
