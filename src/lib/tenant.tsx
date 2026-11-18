@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./auth";
+import { DEMO_COMPANY, DEMO_BRANCHES, type DemoBranch } from "./demo-data";
 
 export interface CompanySummary {
   tenant_id: string;
@@ -16,6 +17,16 @@ export interface CompanySummary {
   plan_name_en: string;
   trial_ends_at: string | null;
   operational: boolean;
+}
+
+export interface BranchItem {
+  id: string;
+  code: string;
+  name: string;
+  city?: string;
+  address?: string;
+  phone?: string;
+  is_main: boolean;
 }
 
 export interface TenantDetails {
@@ -48,6 +59,9 @@ interface TenantContextValue {
   tenants: CompanySummary[];
   selectedTenantId: string | null;
   setSelectedTenantId: (id: string) => void;
+  branches: BranchItem[];
+  currentBranch: BranchItem | null;
+  setCurrentBranch: (branch: BranchItem) => void;
   role: { id: string; code: string; name_ar: string; name_en: string } | null;
   membership: { id: string; default_branch_id: string | null } | null;
   permissions: string[];
@@ -60,7 +74,7 @@ interface TenantContextValue {
 const TenantContext = createContext<TenantContextValue | undefined>(undefined);
 
 export function TenantProvider({ children }: { children: React.ReactNode }) {
-  const { user } = useAuth();
+  const { user, isDemoMode } = useAuth();
   const [tenants, setTenants] = useState<CompanySummary[]>([]);
   const [selectedTenantId, setSelectedTenantIdState] = useState<string | null>(() => {
     if (typeof window !== "undefined") {
@@ -69,14 +83,27 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
     return null;
   });
   const [tenant, setTenant] = useState<TenantDetails | null>(null);
+  const [branches, setBranches] = useState<BranchItem[]>([]);
+  const [currentBranch, setCurrentBranchState] = useState<BranchItem | null>(null);
   const [role, setRole] = useState<{ id: string; code: string; name_ar: string; name_en: string } | null>(null);
   const [membership, setMembership] = useState<{ id: string; default_branch_id: string | null } | null>(null);
   const [permissions, setPermissions] = useState<string[]>([]);
   const [isPlatformAdmin, setIsPlatformAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
 
+  const setCurrentBranch = (b: BranchItem) => {
+    setCurrentBranchState(b);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("finora_selected_branch_id", b.id);
+    }
+  };
+
   // Check if platform admin
   const checkPlatformAdmin = useCallback(async () => {
+    if (isDemoMode) {
+      setIsPlatformAdmin(true);
+      return;
+    }
     if (!user) {
       setIsPlatformAdmin(false);
       return;
@@ -96,13 +123,51 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
     } catch {
       setIsPlatformAdmin(false);
     }
-  }, [user]);
+  }, [user, isDemoMode]);
 
   // Load companies
   const fetchCompanies = useCallback(async () => {
+    if (isDemoMode) {
+      const demoSummary: CompanySummary = {
+        tenant_id: DEMO_COMPANY.id,
+        name: DEMO_COMPANY.name,
+        status: "active",
+        base_currency: "SDG",
+        role_code: "owner",
+        role_name_ar: "المالك والمدير العام",
+        role_name_en: "Owner & General Manager",
+        membership_status: "active",
+        subscription_status: "active",
+        plan_name_ar: "خطة الشركات المتكاملة",
+        plan_name_en: "Enterprise Plan",
+        trial_ends_at: null,
+        operational: true,
+      };
+      setTenants([demoSummary]);
+      setSelectedTenantIdState(DEMO_COMPANY.id);
+      setTenant(DEMO_COMPANY as unknown as TenantDetails);
+      setBranches(DEMO_BRANCHES);
+      setCurrentBranchState(DEMO_BRANCHES[0]);
+      setRole({
+        id: "role-owner",
+        code: "owner",
+        name_ar: "المالك والمدير العام",
+        name_en: "Owner & General Manager",
+      });
+      setMembership({
+        id: "mem-owner",
+        default_branch_id: DEMO_BRANCHES[0].id,
+      });
+      setPermissions(["*"]);
+      setLoading(false);
+      return;
+    }
+
     if (!user) {
       setTenants([]);
       setTenant(null);
+      setBranches([]);
+      setCurrentBranchState(null);
       setLoading(false);
       return;
     }
@@ -129,6 +194,8 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
         } else {
           setTenant(null);
           setRole(null);
+          setBranches([]);
+          setCurrentBranchState(null);
           setPermissions([]);
         }
       }
@@ -137,7 +204,7 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setLoading(false);
     }
-  }, [user, selectedTenantId]);
+  }, [user, selectedTenantId, isDemoMode]);
 
   const loadTenantContext = async (tenantId: string) => {
     try {
@@ -153,6 +220,15 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
         setRole(res.role || null);
         setMembership(res.membership || null);
         setPermissions((res.permissions as string[]) || []);
+
+        const brList: BranchItem[] = res.branches || [];
+        setBranches(brList);
+
+        const savedBranchId = typeof window !== "undefined" ? localStorage.getItem("finora_selected_branch_id") : null;
+        const activeBranch = brList.find((b) => b.id === savedBranchId) ||
+          brList.find((b) => b.id === res.membership?.default_branch_id) ||
+          brList[0] || null;
+        setCurrentBranchState(activeBranch);
       }
     } catch (err) {
       console.error("Error invoking my_tenant_context:", err);
@@ -170,14 +246,15 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     checkPlatformAdmin();
     fetchCompanies();
-  }, [user]);
+  }, [user, isDemoMode]);
 
   const hasPerm = useCallback(
     (perm: string): boolean => {
+      if (isDemoMode) return true;
       if (role?.code === "owner") return true;
       return permissions.includes(perm);
     },
-    [role, permissions]
+    [role, permissions, isDemoMode]
   );
 
   return (
@@ -187,6 +264,9 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
         tenants,
         selectedTenantId,
         setSelectedTenantId,
+        branches,
+        currentBranch,
+        setCurrentBranch,
         role,
         membership,
         permissions,

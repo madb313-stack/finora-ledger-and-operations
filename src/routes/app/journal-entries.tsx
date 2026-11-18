@@ -148,7 +148,7 @@ function JournalEntriesPage() {
         </div>
 
         {hasPerm("journal.create") && (
-          <Link to="/app/journal-entries_.new">
+          <Link to="/app/journal-entries/new">
             <Button className="gap-2 shadow-sm">
               <Plus className="h-4 w-4" />
               <span>{isRTL ? "إنشاء قيد يومية جديد" : "New Journal Entry"}</span>

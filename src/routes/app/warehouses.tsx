@@ -1,9 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useTenant } from "@/lib/tenant";
+import { useAuth } from "@/lib/auth";
 import { useTranslation } from "@/lib/i18n";
+import { DEMO_WAREHOUSES } from "@/lib/demo-data";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -26,6 +28,7 @@ export const Route = createFileRoute("/app/warehouses")({
 
 function WarehousesPage() {
   const { tenant, hasPerm } = useTenant();
+  const { isDemoMode } = useAuth();
   const { isRTL } = useTranslation();
   const queryClient = useQueryClient();
 
@@ -34,7 +37,7 @@ function WarehousesPage() {
   const [name, setName] = useState("");
 
   // Query Warehouses
-  const { data: warehouses = [], isLoading } = useQuery({
+  const { data: dbWarehouses = [], isLoading } = useQuery({
     queryKey: ["warehouses_list", tenant?.id],
     queryFn: async () => {
       if (!tenant?.id) return [];
@@ -46,8 +49,23 @@ function WarehousesPage() {
       if (error) throw error;
       return data || [];
     },
-    enabled: !!tenant?.id,
+    enabled: !!tenant?.id && !isDemoMode,
   });
+
+  const warehouses = useMemo(() => {
+    if (isDemoMode || (!isLoading && dbWarehouses.length === 0)) {
+      return DEMO_WAREHOUSES.map((w) => ({
+        id: w.id,
+        tenant_id: tenant?.id || "demo",
+        code: w.code,
+        name: w.name,
+        branch_id: w.branch_id,
+        is_active: true,
+        created_at: new Date().toISOString(),
+      }));
+    }
+    return dbWarehouses;
+  }, [isDemoMode, dbWarehouses, isLoading, tenant?.id]);
 
   // Query item count in each warehouse
   const { data: stockLevels = [] } = useQuery({

@@ -8,14 +8,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Building2, Globe, Moon, Sun, Lock, Mail, ArrowRight, Loader2 } from "lucide-react";
+import { Building2, Globe, Moon, Sun, Lock, Mail, ArrowRight, Loader2, Sparkles } from "lucide-react";
 
 export const Route = createFileRoute("/login")({
   component: LoginPage,
 });
 
 function LoginPage() {
-  const { signIn } = useAuth();
+  const { signIn, signInDemo } = useAuth();
   const { t, locale, setLocale, isRTL } = useTranslation();
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
@@ -225,6 +225,36 @@ function LoginPage() {
                   <ArrowRight className="h-4 w-4 ms-2 rtl:rotate-180" />
                 </>
               )}
+            </Button>
+
+            {/* Quick Demo Mode Access Button */}
+            <div className="relative w-full my-2">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t border-dashed" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-card px-2 text-muted-foreground font-semibold">
+                  {isRTL ? "أو جرّب مباشرة" : "Or Try Instantly"}
+                </span>
+              </div>
+            </div>
+
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                signInDemo();
+                toast.success(
+                  isRTL
+                    ? "تم تسجيل الدخول كمدير عام لشركة النيل للتجارة والاستثمار (بيانات وفروع كاملة)"
+                    : "Logged in as General Manager for Blue Nile Trading (Full Demo Data)"
+                );
+                navigate({ to: "/app/dashboard" });
+              }}
+              className="w-full h-10 border-primary/40 bg-primary/5 hover:bg-primary/10 text-primary font-bold gap-2 text-xs"
+            >
+              <Sparkles className="h-4 w-4 text-primary" />
+              <span>{isRTL ? "دخول تجريبي فوري (شركة النيل - 4 فروع وبيانات متكاملة)" : "Instant Demo Login (4 Branches & Full Data)"}</span>
             </Button>
 
             <div className="text-center text-xs text-muted-foreground">

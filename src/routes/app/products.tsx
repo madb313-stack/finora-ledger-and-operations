@@ -1,9 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useTenant } from "@/lib/tenant";
+import { useAuth } from "@/lib/auth";
 import { useTranslation } from "@/lib/i18n";
+import { DEMO_PRODUCTS } from "@/lib/demo-data";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -27,6 +29,7 @@ export const Route = createFileRoute("/app/products")({
 
 function ProductsPage() {
   const { tenant, hasPerm } = useTenant();
+  const { isDemoMode } = useAuth();
   const { isRTL } = useTranslation();
   const queryClient = useQueryClient();
 
@@ -44,7 +47,7 @@ function ProductsPage() {
   const [description, setDescription] = useState("");
 
   // Query Products
-  const { data: products = [], isLoading } = useQuery({
+  const { data: dbProducts = [], isLoading } = useQuery({
     queryKey: ["products_list", tenant?.id],
     queryFn: async () => {
       if (!tenant?.id) return [];
@@ -56,8 +59,15 @@ function ProductsPage() {
       if (error) throw error;
       return data || [];
     },
-    enabled: !!tenant?.id,
+    enabled: !!tenant?.id && !isDemoMode,
   });
+
+  const products = useMemo(() => {
+    if (isDemoMode || (!isLoading && dbProducts.length === 0)) {
+      return DEMO_PRODUCTS;
+    }
+    return dbProducts;
+  }, [isDemoMode, dbProducts, isLoading]);
 
   // Query Stock Quantities (sum across warehouses)
   const { data: stockLevels = [] } = useQuery({

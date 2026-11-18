@@ -51,6 +51,7 @@ import {
   Menu,
   X,
   Plus,
+  Sparkles,
 } from "lucide-react";
 
 interface AppShellProps {
@@ -58,8 +59,8 @@ interface AppShellProps {
 }
 
 export function AppShell({ children }: AppShellProps) {
-  const { user, signOut } = useAuth();
-  const { tenant, tenants, setSelectedTenantId, role, isPlatformAdmin } = useTenant();
+  const { user, signOut, isDemoMode } = useAuth();
+  const { tenant, tenants, setSelectedTenantId, branches, currentBranch, setCurrentBranch, role, isPlatformAdmin } = useTenant();
   const { locale, setLocale, isRTL } = useTranslation();
   const { theme, toggleTheme } = useTheme();
   const location = useLocation();
@@ -202,10 +203,50 @@ export function AppShell({ children }: AppShellProps) {
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
+
+          {/* Branch Switcher Dropdown */}
+          {branches.length > 0 && (
+            <div className="ms-2 border-s ps-2 hidden lg:block">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="sm" className="h-9 gap-1.5 font-medium max-w-[210px] text-xs">
+                    <GitBranch className="h-3.5 w-3.5 text-primary shrink-0" />
+                    <span className="truncate">{currentBranch?.name || (isRTL ? "الفرع الرئيسي" : "Main Branch")}</span>
+                    <ChevronDown className="h-3 w-3 opacity-60 shrink-0" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align={isRTL ? "start" : "end"} className="w-56">
+                  <DropdownMenuLabel>{isRTL ? "فروع المنشأة" : "Company Branches"}</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  {branches.map((b) => (
+                    <DropdownMenuItem
+                      key={b.id}
+                      onClick={() => setCurrentBranch(b)}
+                      className={`flex items-center justify-between cursor-pointer ${currentBranch?.id === b.id ? "bg-primary/10 font-bold text-primary" : ""}`}
+                    >
+                      <span className="truncate">{b.name}</span>
+                      {b.is_main && (
+                        <span className="text-[10px] text-muted-foreground px-1.5 py-0.5 rounded bg-muted">
+                          {isRTL ? "رئيسي" : "HQ"}
+                        </span>
+                      )}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          )}
         </div>
 
         {/* Right side controls */}
         <div className="flex items-center gap-2">
+          {/* Demo badge if in demo mode */}
+          {isDemoMode && (
+            <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-600 dark:text-amber-400 text-xs font-semibold">
+              <Sparkles className="h-3.5 w-3.5 animate-pulse" />
+              <span>{isRTL ? "شركة النيل (تجريبي)" : "Demo Mode"}</span>
+            </div>
+          )}
           {/* Language toggle */}
           <Button
             variant="ghost"

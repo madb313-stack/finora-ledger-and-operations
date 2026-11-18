@@ -11,14 +11,14 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Building2, Globe, Moon, Sun, Lock, Mail, User, Phone, Coins, Loader2, ArrowRight } from "lucide-react";
+import { Building2, Globe, Moon, Sun, Lock, Mail, User, Phone, Coins, Loader2, ArrowRight, Sparkles } from "lucide-react";
 
 export const Route = createFileRoute("/register")({
   component: RegisterPage,
 });
 
 function RegisterPage() {
-  const { signUp, user, session } = useAuth();
+  const { signUp, signInDemo, user, session } = useAuth();
   const { refetch: refetchTenant } = useTenant();
   const { locale, setLocale, isRTL } = useTranslation();
   const { theme, toggleTheme } = useTheme();
@@ -314,6 +314,36 @@ function RegisterPage() {
                   <ArrowRight className="h-5 w-5 ms-2 rtl:rotate-180" />
                 </>
               )}
+            </Button>
+
+            {/* Instant Demo Mode Button */}
+            <div className="relative w-full my-1">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t border-dashed" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-card px-2 text-muted-foreground font-semibold">
+                  {isRTL ? "أو جرّب مباشرة دون انتظار" : "Or Try Instantly"}
+                </span>
+              </div>
+            </div>
+
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                signInDemo();
+                toast.success(
+                  isRTL
+                    ? "تم تسجيل الدخول كمدير عام لشركة النيل للتجارة والاستثمار (بيانات وفروع كاملة)"
+                    : "Logged in as General Manager for Blue Nile Trading (Full Demo Data)"
+                );
+                navigate({ to: "/app/dashboard" });
+              }}
+              className="w-full h-11 border-primary/40 bg-primary/5 hover:bg-primary/10 text-primary font-bold gap-2 text-xs"
+            >
+              <Sparkles className="h-4 w-4 text-primary" />
+              <span>{isRTL ? "تجربة فورية ببيانات وفروع شركة النيل للتجارة" : "Instant Demo (Blue Nile Trading 4 Branches)"}</span>
             </Button>
 
             <div className="text-center text-xs text-muted-foreground">

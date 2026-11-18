@@ -1,9 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useTenant } from "@/lib/tenant";
+import { useAuth } from "@/lib/auth";
 import { useTranslation } from "@/lib/i18n";
+import { DEMO_CUSTOMERS } from "@/lib/demo-data";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -26,6 +28,7 @@ export const Route = createFileRoute("/app/customers")({
 
 function CustomersPage() {
   const { tenant } = useTenant();
+  const { isDemoMode } = useAuth();
   const { isRTL } = useTranslation();
   const queryClient = useQueryClient();
 
@@ -44,7 +47,7 @@ function CustomersPage() {
   const [openingBalance, setOpeningBalance] = useState("");
 
   // Query Customers list
-  const { data: customers = [], isLoading } = useQuery({
+  const { data: dbCustomers = [], isLoading } = useQuery({
     queryKey: ["customers", tenant?.id],
     queryFn: async () => {
       if (!tenant?.id) return [];
@@ -57,8 +60,15 @@ function CustomersPage() {
       if (error) throw error;
       return data || [];
     },
-    enabled: !!tenant?.id,
+    enabled: !!tenant?.id && !isDemoMode,
   });
+
+  const customers = useMemo(() => {
+    if (isDemoMode || (!isLoading && dbCustomers.length === 0)) {
+      return DEMO_CUSTOMERS;
+    }
+    return dbCustomers;
+  }, [isDemoMode, dbCustomers, isLoading]);
 
   // Query Balances
   const { data: balances = [] } = useQuery({

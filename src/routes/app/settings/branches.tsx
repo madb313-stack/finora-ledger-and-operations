@@ -1,9 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useTenant } from "@/lib/tenant";
+import { useAuth } from "@/lib/auth";
 import { useTranslation } from "@/lib/i18n";
+import { DEMO_BRANCHES } from "@/lib/demo-data";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -46,6 +48,7 @@ interface Branch {
 
 function BranchesSettingsPage() {
   const { tenant, hasPerm } = useTenant();
+  const { isDemoMode } = useAuth();
   const { isRTL } = useTranslation();
   const queryClient = useQueryClient();
 
@@ -61,7 +64,7 @@ function BranchesSettingsPage() {
 
   const canManage = hasPerm("branches.manage");
 
-  const { data: branches, isLoading } = useQuery({
+  const { data: dbBranches, isLoading } = useQuery({
     queryKey: ["branches", tenant?.id],
     queryFn: async () => {
       if (!tenant?.id) return [];
@@ -75,8 +78,25 @@ function BranchesSettingsPage() {
       if (error) throw error;
       return (data || []) as Branch[];
     },
-    enabled: !!tenant?.id,
+    enabled: !!tenant?.id && !isDemoMode,
   });
+
+  const branches = useMemo(() => {
+    if (isDemoMode || (!isLoading && (!dbBranches || dbBranches.length === 0))) {
+      return DEMO_BRANCHES.map((b) => ({
+        id: b.id,
+        tenant_id: tenant?.id || "demo",
+        code: b.code,
+        name: b.name,
+        address: b.address,
+        phone: b.phone,
+        is_main: b.is_main,
+        is_active: true,
+        created_at: new Date().toISOString(),
+      })) as Branch[];
+    }
+    return dbBranches || [];
+  }, [isDemoMode, dbBranches, isLoading, tenant?.id]);
 
   const openNew = () => {
     setEditingBranch(null);

@@ -1,9 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useTenant } from "@/lib/tenant";
+import { useAuth } from "@/lib/auth";
 import { useTranslation } from "@/lib/i18n";
+import { DEMO_FINANCIAL_ACCOUNTS } from "@/lib/demo-data";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -27,6 +29,7 @@ export const Route = createFileRoute("/app/financial-accounts")({
 
 function FinancialAccountsPage() {
   const { tenant, hasPerm } = useTenant();
+  const { isDemoMode } = useAuth();
   const { isRTL } = useTranslation();
   const queryClient = useQueryClient();
 
@@ -40,20 +43,36 @@ function FinancialAccountsPage() {
   const [openingBalance, setOpeningBalance] = useState("");
 
   // Query Financial Accounts
-  const { data: accounts = [], isLoading } = useQuery({
+  const { data: dbAccounts = [], isLoading } = useQuery({
     queryKey: ["financial_accounts", tenant?.id],
     queryFn: async () => {
       if (!tenant?.id) return [];
       const { data, error } = await supabase
         .from("financial_accounts")
         .select("*")
-        .eq("tenant_id", tenant.id)
-        .order("name");
+        .eq("tenant_id", tenant.id);
       if (error) throw error;
       return data || [];
     },
-    enabled: !!tenant?.id,
+    enabled: !!tenant?.id && !isDemoMode,
   });
+
+  const accounts = useMemo(() => {
+    if (isDemoMode || (!isLoading && dbAccounts.length === 0)) {
+      return DEMO_FINANCIAL_ACCOUNTS.map((fa) => ({
+        id: fa.id,
+        tenant_id: tenant?.id || "demo",
+        kind: fa.kind,
+        name: fa.name,
+        currency_code: fa.currency_code,
+        bank_name: fa.kind === "bank" ? "بنك الخرطوم / فيصل" : null,
+        account_number: fa.account_number,
+        is_active: true,
+        created_at: new Date().toISOString(),
+      }));
+    }
+    return dbAccounts;
+  }, [isDemoMode, dbAccounts, isLoading, tenant?.id]);
 
   // Query Balances
   const { data: balances = [] } = useQuery({

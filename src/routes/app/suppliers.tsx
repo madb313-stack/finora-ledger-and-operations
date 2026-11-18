@@ -1,9 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useTenant } from "@/lib/tenant";
+import { useAuth } from "@/lib/auth";
 import { useTranslation } from "@/lib/i18n";
+import { DEMO_SUPPLIERS } from "@/lib/demo-data";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -26,6 +28,7 @@ export const Route = createFileRoute("/app/suppliers")({
 
 function SuppliersPage() {
   const { tenant } = useTenant();
+  const { isDemoMode } = useAuth();
   const { isRTL } = useTranslation();
   const queryClient = useQueryClient();
 
@@ -44,7 +47,7 @@ function SuppliersPage() {
   const [openingBalance, setOpeningBalance] = useState("");
 
   // Query Suppliers list
-  const { data: suppliers = [], isLoading } = useQuery({
+  const { data: dbSuppliers = [], isLoading } = useQuery({
     queryKey: ["suppliers", tenant?.id],
     queryFn: async () => {
       if (!tenant?.id) return [];
@@ -57,8 +60,15 @@ function SuppliersPage() {
       if (error) throw error;
       return data || [];
     },
-    enabled: !!tenant?.id,
+    enabled: !!tenant?.id && !isDemoMode,
   });
+
+  const suppliers = useMemo(() => {
+    if (isDemoMode || (!isLoading && dbSuppliers.length === 0)) {
+      return DEMO_SUPPLIERS;
+    }
+    return dbSuppliers;
+  }, [isDemoMode, dbSuppliers, isLoading]);
 
   // Query Balances
   const { data: balances = [] } = useQuery({

@@ -1,10 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useTenant } from "@/lib/tenant";
 import { useTranslation } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth";
+import { DEMO_USERS } from "@/lib/demo-data";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -76,7 +77,7 @@ interface Invitation {
 
 function TeamSettingsPage() {
   const { tenant, hasPerm } = useTenant();
-  const { user: currentUser } = useAuth();
+  const { user: currentUser, isDemoMode } = useAuth();
   const { isRTL } = useTranslation();
   const queryClient = useQueryClient();
 
@@ -127,7 +128,7 @@ function TeamSettingsPage() {
   });
 
   // Load members with profiles & roles
-  const { data: members, isLoading: loadingMembers } = useQuery({
+  const { data: dbMembers, isLoading: loadingMembers } = useQuery({
     queryKey: ["tenant_members", tenant?.id],
     queryFn: async () => {
       if (!tenant?.id) return [];
@@ -151,8 +152,39 @@ function TeamSettingsPage() {
       if (error) throw error;
       return (data || []) as unknown as Member[];
     },
-    enabled: !!tenant?.id,
+    enabled: !!tenant?.id && !isDemoMode,
   });
+
+  const members = useMemo(() => {
+    if (isDemoMode || (!loadingMembers && (!dbMembers || dbMembers.length === 0))) {
+      return DEMO_USERS.map((u) => ({
+        id: u.id,
+        tenant_id: tenant?.id || "demo",
+        user_id: u.id,
+        role_id: "role-" + u.role,
+        status: "active" as const,
+        default_branch_id: null,
+        created_at: new Date().toISOString(),
+        profile: {
+          full_name: u.name,
+          email: u.email,
+          phone: "+249 912 345678",
+        },
+        role: {
+          id: "role-" + u.role,
+          code: u.role,
+          name_ar: u.role_title_ar,
+          name_en: u.role,
+        },
+        branch: {
+          id: "branch-hq",
+          code: "HQ",
+          name: u.branch_name,
+        },
+      })) as Member[];
+    }
+    return dbMembers || [];
+  }, [isDemoMode, dbMembers, loadingMembers, tenant?.id]);
 
   // Load pending invitations
   const { data: invitations, isLoading: loadingInvites } = useQuery({
