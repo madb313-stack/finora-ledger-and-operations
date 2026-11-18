@@ -18,7 +18,7 @@ export const Route = createFileRoute("/register")({
 });
 
 function RegisterPage() {
-  const { signUp } = useAuth();
+  const { signUp, user, session } = useAuth();
   const { refetch: refetchTenant } = useTenant();
   const { locale, setLocale, isRTL } = useTranslation();
   const { theme, toggleTheme } = useTheme();
@@ -36,36 +36,59 @@ function RegisterPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!fullName || !companyName || !email || !password) {
-      toast.error(isRTL ? "يرجى ملء جميع الحقول المطلوبة" : "Please fill in all required fields");
+    if (!companyName.trim()) {
+      toast.error(isRTL ? "يرجى إدخال اسم المنشأة" : "Please enter company name");
       return;
     }
 
-    if (password.length < 6) {
-      toast.error(isRTL ? "كلمة المرور يجب أن تكون 6 أحرف على الأقل" : "Password must be at least 6 characters");
-      return;
-    }
+    if (!user) {
+      if (!fullName.trim() || !email.trim() || !password) {
+        toast.error(isRTL ? "يرجى ملء جميع الحقول المطلوبة" : "Please fill in all required fields");
+        return;
+      }
 
-    if (password !== confirmPassword) {
-      toast.error(isRTL ? "كلمتا المرور غير متطابقتين" : "Passwords do not match");
-      return;
+      if (password.length < 6) {
+        toast.error(isRTL ? "كلمة المرور يجب أن تكون 6 أحرف على الأقل" : "Password must be at least 6 characters");
+        return;
+      }
+
+      if (password !== confirmPassword) {
+        toast.error(isRTL ? "كلمتا المرور غير متطابقتين" : "Passwords do not match");
+        return;
+      }
     }
 
     try {
       setLoading(true);
 
-      // 1. Sign up user
-      const { error: signUpError, user } = await signUp(email, password, fullName);
-      if (signUpError) {
-        toast.error(signUpError.message || (isRTL ? "فشل إنشاء الحساب" : "Failed to sign up"));
-        setLoading(false);
+      let currentSession = session;
+
+      // 1. Sign up user if not logged in
+      if (!user) {
+        const { error: signUpError, session: newSession } = await signUp(email.trim(), password, fullName.trim());
+        if (signUpError) {
+          toast.error(signUpError.message || (isRTL ? "فشل إنشاء الحساب" : "Failed to sign up"));
+          setLoading(false);
+          return;
+        }
+        currentSession = newSession;
+      }
+
+      // If email verification is required by Supabase and no active session yet
+      if (!currentSession && !user) {
+        toast.info(
+          isRTL
+            ? "تم إنشاء الحساب بنجاح! تم إرسال رابط تأكيد إلى بريدك الإلكتروني. يرجى فتح بريدك والضغط على رابط التفعيل ثم تسجيل الدخول."
+            : "Account created! Please check your email inbox to confirm your account, then log in."
+        );
+        navigate({ to: "/login" });
         return;
       }
 
       // 2. Register Company via RPC
       const companyPayload = {
-        name: companyName,
-        phone: phone || null,
+        name: companyName.trim(),
+        phone: phone.trim() || null,
         base_currency: currency,
         country_code: "SD",
         timezone: "Africa/Khartoum",
@@ -79,7 +102,7 @@ function RegisterPage() {
 
       if (regError) {
         console.error("Error creating company:", regError);
-        toast.error(regError.message || (isRTL ? "تم إنشاء الحساب ولكن تعذر إنشاء الشركة" : "Account created but failed to create company"));
+        toast.error(regError.message || (isRTL ? "تعذر إنشاء الشركة" : "Failed to create company"));
       } else {
         toast.success(isRTL ? "تم إنشاء الحساب والشركة بنجاح!" : "Company created successfully!");
         if (typeof window !== "undefined" && tenantId) {

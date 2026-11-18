@@ -33,9 +33,23 @@ function LoginPage() {
 
     try {
       setLoading(true);
-      const { error } = await signIn(email, password);
+      const { error } = await signIn(email.trim(), password);
       if (error) {
-        toast.error(error.message || (isRTL ? "فشل تسجيل الدخول. تحقق من البيانات." : "Login failed"));
+        if (error.message.includes("Email not confirmed")) {
+          toast.error(
+            isRTL
+              ? "يرجى تأكيد بريدك الإلكتروني عبر الرابط المرسل إلى بريدك أولاً."
+              : "Please confirm your email address via the link sent to your inbox first."
+          );
+        } else if (error.message.includes("Invalid login credentials")) {
+          toast.error(
+            isRTL
+              ? "بيانات الدخول غير صحيحة. يرجى التأكد من البريد الإلكتروني وكلمة المرور."
+              : "Invalid email or password. Please check your credentials."
+          );
+        } else {
+          toast.error(error.message || (isRTL ? "فشل تسجيل الدخول. تحقق من البيانات." : "Login failed"));
+        }
       } else {
         toast.success(isRTL ? "تم تسجيل الدخول بنجاح" : "Signed in successfully");
         navigate({ to: "/app/dashboard" });
