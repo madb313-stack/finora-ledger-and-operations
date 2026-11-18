@@ -1,0 +1,27 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1795010002562,
+      "tag": "0000_finora_core_schema",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1795010262057,
+      "tag": "0001_finora_accounting_engine",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1795010554215,
+      "tag": "0002_finora_operations",
+      "breakpoints": true
+    }
+  ]
+}
