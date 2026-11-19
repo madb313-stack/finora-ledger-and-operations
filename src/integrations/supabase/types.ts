@@ -3280,6 +3280,7 @@ export type Database = {
       post_journal_entry: { Args: { _id: string }; Returns: undefined }
       post_purchase_invoice: { Args: { _id: string }; Returns: undefined }
       post_sales_invoice: { Args: { _id: string }; Returns: undefined }
+      public_platform_info: { Args: never; Returns: Json }
       record_payment: { Args: { _p: Json }; Returns: string }
       register_company: { Args: { _p: Json }; Returns: string }
       report_account_ledger: {
