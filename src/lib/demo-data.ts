@@ -30,6 +30,8 @@ export interface DemoParty {
   credit_limit: number;
   payment_terms_days: number;
   tax_number: string;
+  contact_person?: string | null;
+  email?: string | null;
 }
 
 export interface DemoProduct {
@@ -45,6 +47,9 @@ export interface DemoProduct {
   avg_cost: number;
   stock_quantity: number;
   min_stock_alert: number;
+  reorder_level?: number;
+  description?: string | null;
+  is_active?: boolean;
 }
 
 export interface DemoFinancialAccount {

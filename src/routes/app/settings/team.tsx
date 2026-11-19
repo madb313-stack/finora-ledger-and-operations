@@ -266,7 +266,7 @@ function TeamSettingsPage() {
         _membership: editingMember.id,
         _role: editRoleId,
         _status: editStatus,
-        _branch: editBranchId || null,
+        _branch: (editBranchId || null) as unknown as string,
       });
       if (error) throw error;
     },

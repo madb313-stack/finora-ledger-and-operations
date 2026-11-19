@@ -27,7 +27,7 @@ export const Route = createFileRoute("/platform")({
 
 function PlatformLayout() {
   const { user, loading: authLoading, signOut } = useAuth();
-  const { isRTL, language, setLanguage } = useTranslation();
+  const { isRTL, locale: language, setLocale: setLanguage } = useTranslation();
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const location = useLocation();

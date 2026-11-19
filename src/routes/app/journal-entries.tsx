@@ -88,6 +88,7 @@ function JournalEntriesPage() {
     mutationFn: async (id: string) => {
       const { error } = await supabase.rpc("reverse_journal_entry", {
         _id: id,
+        _date: new Date().toISOString().slice(0, 10),
         _reason: "عكس يدوي بواسطة المستخدم",
       });
       if (error) throw error;

@@ -364,7 +364,7 @@ function ProductsPage() {
                 ) : filtered.length > 0 ? (
                   filtered.map((p) => {
                     const currentStock = stockMap.get(p.id) || 0;
-                    const isLowStock = p.type === "stock" && p.reorder_level > 0 && currentStock <= p.reorder_level;
+                    const isLowStock = p.type === "stock" && (p.reorder_level ?? 0) > 0 && currentStock <= (p.reorder_level ?? 0);
                     return (
                       <tr key={p.id} className="hover:bg-muted/40 transition">
                         <td className="py-3 px-4 font-mono font-medium text-xs">{p.sku}</td>
